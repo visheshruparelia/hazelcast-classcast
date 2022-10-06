@@ -1,5 +1,5 @@
 # hazelcast-classcast
-A demo app which reproduces Class cast exceptions when using Kafka Avro Deserializer using Schema registry. 
+A demo app which reproduces Class cast exceptions in Hazelcast when using Kafka Avro Deserializer using Schema registry. 
 The main class is inside the package `hazelcast.classcast` with the name `App`. If using any IDE like intelliJ, make sure to run `gradle build` so that Avro classes are generated.
 
 More details in the Hazelcast community's slack thread: https://hazelcastcommunity.slack.com/archives/C015Q2TUBKL/p1664777280871099 

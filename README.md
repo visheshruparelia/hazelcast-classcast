@@ -1,12 +1,23 @@
 # hazelcast-classcast
 A demo app which reproduces Class cast exceptions in Hazelcast when using Kafka Avro Deserializer using Schema registry. 
 The main class is inside the package `hazelcast.classcast` with the name `App`. If using any IDE like intelliJ, make sure to run `gradle build` so that Avro classes are generated.
+The main class for producer is inside `producer.kafka` with the name `Producer`.
 
 More details in the Hazelcast community's slack thread: https://hazelcastcommunity.slack.com/archives/C015Q2TUBKL/p1664777280871099 
 
-There are some TODOs defined as comments in the main class which needs to be addressed before submitting the Hazelcast pipeline. For example, updating `bootstrap.servers`, changing Hazelcast `ClientConfig`, updating Schema registry URL, etc.
-
-The error doesn't happen when you submit the pipeline for the first time. When you cancel the job and resubmit it, you will be able to see Class cast exceptions of the form:
+## Steps to run
+- `cd` to the root of the repo.
+- Run `docker-compose up` and wait for everything to come up.
+- Run `./gradlew clean build`
+- Start the data production by running: `java -cp ./app/build/libs/app-all.jar producer.kafka.Producer`
+- In another terminal run (from the root of the repo):  `java -cp ./app/build/libs/app-all.jar hazelcast.classcast.App`
+  - This will submit a job to the cluster. You can view the logs inside `docker-compose` logs.
+- The error doesn't happen when you submit the pipeline for the first time. 
+  - Simply re run `java -cp ./app/build/libs/app-all.jar hazelcast.classcast.App`
+    - It will cancel and resubmit the job.
+    
+When we re run the command, you will be able to see Class cast exceptions. The logs can be seen as a part of the docker-compose log output.
+A sample exception looks like this: 
 ```
 com.hazelcast.jet.JetException: Exception in ProcessorTasklet{custom_job1.0/fused(filter, map, flat-map, filter-2, map-2, map-3, map-4)#9}: java.lang.ClassCastException: class com.abcd.avro.A cannot be cast to class com.abcd.avro.A (com.abcd.avro.A is in unnamed module of loader com.hazelcast.jet.impl.deployment.JetClassLoader @128e6c99; com.abcd.avro.A is in unnamed module of loader com.hazelcast.jet.impl.deployment.JetClassLoader @4167af2d)
 	at com.hazelcast.jet.impl.execution.TaskletExecutionService$CooperativeWorker.runTasklet(TaskletExecutionService.java:400) ~[hazelcast-5.0.2.jar:5.0.2]

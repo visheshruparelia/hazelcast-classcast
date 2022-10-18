@@ -8,6 +8,7 @@ import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.function.FunctionEx;
 import com.hazelcast.jet.Job;
+import com.hazelcast.jet.JobAlreadyExistsException;
 import com.hazelcast.jet.config.JobConfig;
 import com.hazelcast.jet.core.ProcessorMetaSupplier;
 import com.hazelcast.jet.kafka.impl.StreamKafkaP;
@@ -39,14 +40,17 @@ public class App {
         System.out.println(p.toDag().toDotString());
         JobConfig jobConfig = createJobConfig("testPipeline");
         ClientConfig cg = new ClientConfig();
-        // TODO: Change the Hazelcast cluster address. This issue has not been tested in Embedded mode.
-        cg.getNetworkConfig().addAddress("127.0.0.1:10005");
-        // TODO: Change cluster name
-        cg.setClusterName("CLUSTER_NAME");
+        cg.getNetworkConfig().addAddress("127.0.0.1:5701");
+        cg.setClusterName("dev");
         HazelcastInstance hazelcastInstance = HazelcastClient.newHazelcastClient(cg);
         jobConfig.addPackage( "hazelcast.classcast", "io.confluent", "org.apache", "demo");
         Job job;
-        job = hazelcastInstance.getJet().newJob(p, jobConfig);
+        try{
+            job = hazelcastInstance.getJet().newJob(p, jobConfig);
+        } catch (JobAlreadyExistsException e) {
+            hazelcastInstance.getJet().getJob("testPipeline").cancel();
+            job = hazelcastInstance.getJet().newJob(p, jobConfig);
+        }
     }
 
     static JobConfig createJobConfig(String workflowName) {
@@ -57,8 +61,7 @@ public class App {
     }
 
     private static Map<String, Object> getSerDeProperties() {
-        // TODO: Change the schema registry URL here
-        return Map.of(SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081",
+        return Map.of(SCHEMA_REGISTRY_URL_CONFIG, "http://schemaregistry:8081",
                 AUTO_REGISTER_SCHEMAS, false,
                 SPECIFIC_AVRO_READER_CONFIG, true,
                 KEY_SUBJECT_NAME_STRATEGY, "io.confluent.kafka.serializers.subject.RecordNameStrategy",
@@ -68,8 +71,7 @@ public class App {
 
     private static Properties getKafkaConsumerProperties() {
         Properties consumerProperties = new Properties();
-        // TODO: Change this to your Kafka broker URL.
-        consumerProperties.setProperty("bootstrap.servers", "localhost:9094");
+        consumerProperties.setProperty("bootstrap.servers", "kafka:9092");
         consumerProperties.setProperty("key.deserializer", ByteArrayDeserializer.class.getCanonicalName());
         consumerProperties.setProperty("value.deserializer", ByteArrayDeserializer.class.getCanonicalName());
         consumerProperties.setProperty("group.id", "testGroup");
@@ -82,15 +84,14 @@ public class App {
                 "kafkaSource(" + "inputTopic" + ")",
                 true,
                 w -> ProcessorMetaSupplier.of(1,
-                        // TODO: Change input topic name
-                        StreamKafkaP.processorSupplier(kafkaConsumerProperties, Collections.singletonList("inputTopicName"),
+                        StreamKafkaP.processorSupplier(kafkaConsumerProperties, Collections.singletonList("testTopic"),
                                 (FunctionEx<ConsumerRecord<? extends byte[], ? extends byte[]>,
                                         Map.Entry<Headers, byte[]>>) r -> entry(r.headers(), r.value()), w)));
         StreamStage<Map.Entry<Headers, byte[]>> streamStage = p.readFrom(source).withoutTimestamps();
         FunctionEx<Map.Entry<Headers, byte[]>, Emp> f1 = e -> {
             AvroDeserializer deserializer = new AvroDeserializer();
             deserializer.configure(serDeProperties, false);
-            Thread.sleep(2000);
+            Thread.sleep(1000);
             return deserializer.deserialize(e.getValue(), new Emp());
         };
         streamStage.map(f1).writeTo(Sinks.logger());

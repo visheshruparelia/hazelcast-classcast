@@ -11,12 +11,12 @@ More details in the Hazelcast community's slack thread: https://hazelcastcommuni
 - Run `./gradlew clean build`
 - Start the data production by running: `java -cp ./app/build/libs/app-all.jar producer.kafka.Producer`
 - In another terminal run (from the root of the repo):  `java -cp ./app/build/libs/app-all.jar hazelcast.classcast.App`
-  - This will submit a job to the cluster. You can view the logs inside `docker-compose` logs.
-- The error doesn't happen when you submit the pipeline for the first time. 
-  - Simply re run `java -cp ./app/build/libs/app-all.jar hazelcast.classcast.App`
+  - This will submit a job to the cluster. You can view the logs inside `docker-compose` logs. It will work fine as this is the first submission.
+- The error doesn't happen when you submit the pipeline for the first time but happens upon subsequent submissions.
+  - Simply re-run `java -cp ./app/build/libs/app-all.jar hazelcast.classcast.App`
     - It will cancel and resubmit the job.
     
-When we re run the command, you will be able to see Class cast exceptions. The logs can be seen as a part of the docker-compose log output.
+When we re-run the command, you will be able to see Class cast exceptions. The logs can be seen as a part of the docker-compose log output.
 A sample exception looks like this: 
 ```
 com.hazelcast.jet.JetException: Exception in ProcessorTasklet{custom_job1.0/fused(filter, map, flat-map, filter-2, map-2, map-3, map-4)#9}: java.lang.ClassCastException: class com.abcd.avro.A cannot be cast to class com.abcd.avro.A (com.abcd.avro.A is in unnamed module of loader com.hazelcast.jet.impl.deployment.JetClassLoader @128e6c99; com.abcd.avro.A is in unnamed module of loader com.hazelcast.jet.impl.deployment.JetClassLoader @4167af2d)
